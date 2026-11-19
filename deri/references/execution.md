@@ -59,9 +59,9 @@ shared pending slot. In an unvalidated install, stop after the preview.
 
 ## Release gates
 
-Current review build: Base and Arbitrum are both preview-only. Hosted-wallet
-signing and the funded acceptance tests have not yet been verified. Installing
-this branch or verifying a probe does not enable production writes.
+Current review build: Base and Arbitrum are both preview-only. The hosted
+chat signed the Deri fixture; installed-skill and funded acceptance tests are
+still outstanding. The probe alone does not enable production writes.
 
 Hosted-chat probe (2026-11-19): a signed-in Fast-mode chat attempted its
 sign-data action for the non-executable fixture and reported that the wallet
@@ -71,6 +71,13 @@ In this state keep discovery and quotes available, but do not request a
 deposit, retry with a different signature type, or change wallet settings.
 If the wallet owner independently opts in, repeat the same fixture and verify
 the signature against the active wallet before treating the probe as passed.
+
+Positive check (2026-11-19): with MFA and a 10-minute contract-call window,
+Bankr chat returned one signature for the unchanged fixture. Local EIP-712
+recovery matched the full signer address in the response and the abbreviated
+address displayed by the trading wallet. Contract calls were switched off
+immediately and verified disabled after reloading Security. Nothing was
+broadcast. This verifies the signing format, not order execution or settlement.
 
 Per chain, record a fresh hosted install, independently verified chat signer,
 deposit and relay, option open, protected close, withdrawal and wallet credit.
