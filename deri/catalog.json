@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "slug": "deri",
+  "provider": "Deri Protocol",
+  "providerUrl": "https://deri.io",
+  "logo": "logo.svg",
+  "demo": {"title":"Bankr chat","language":"text","code":"Show me the listed ETH everlasting puts on Deri using Arbitrum. Quote one near the current ETH price."},
+  "setup": ["Choose Base or Arbitrum One and native USDC.", "Start with market discovery. Run the non-executable chat wallet check before any trading workflow."],
+  "install": {"type":"bankr","repoPath":"deri","command":"install the deri skill from https://github.com/BankrBot/skills/tree/main/deri"}
+}
