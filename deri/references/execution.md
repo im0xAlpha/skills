@@ -79,6 +79,13 @@ address displayed by the trading wallet. Contract calls were switched off
 immediately and verified disabled after reloading Security. Nothing was
 broadcast. This verifies the signing format, not order execution or settlement.
 
+Hosted install (2026-11-19): the fork installed as `deri`, but the initial
+Base ETH put and Arbitrum BTC call tests stopped at a missing
+`scripts/deri.mjs`. Public option discovery and quotes are now self-contained
+in SKILL.md. Test that exact standalone reader locally with
+`DERI_LIVE_READ=1 npm test`. A new same-source install and a successful
+two-chain chat test are still required; a local live read is not that test.
+
 Per chain, record a fresh hosted install, independently verified chat signer,
 deposit and relay, option open, protected close, withdrawal and wallet credit.
 Keep evidence of user-op and transaction hashes, never executable signatures.

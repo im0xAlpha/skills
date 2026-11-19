@@ -206,12 +206,17 @@ export function operation(owner, c, sender, nonce, deployed, inner) {
 export function quoteRow(rows, symbol, now) {
   const row = rows?.find((x) => x.symbol === symbol);
   const age = now - Number(row?.timestamp);
+  // The indexer can return deep OTM marks in scientific notation. Keep the
+  // source string for display; actual order limits still go through units().
+  const mark = row?.markPrice;
   requireThat(
     row &&
       Number.isFinite(age) &&
       age >= -5 &&
       age <= 120 &&
-      units(row.markPrice) > 0n,
+      typeof mark === "string" &&
+      /^\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(mark) &&
+      Number.isFinite(Number(mark)) && Number(mark) > 0,
     "No fresh market mark; do not sign.",
   );
   return {
