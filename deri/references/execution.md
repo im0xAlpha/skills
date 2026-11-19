@@ -63,6 +63,15 @@ Current review build: Base and Arbitrum are both preview-only. Hosted-wallet
 signing and the funded acceptance tests have not yet been verified. Installing
 this branch or verifying a probe does not enable production writes.
 
+Hosted-chat probe (2026-11-19): a signed-in Fast-mode chat attempted its
+sign-data action for the non-executable fixture and reported that the wallet
+required MFA and contract calls to be enabled. No signature was returned.
+This is a wallet-policy refusal, not a verdict on the Deri signing domain.
+In this state keep discovery and quotes available, but do not request a
+deposit, retry with a different signature type, or change wallet settings.
+If the wallet owner independently opts in, repeat the same fixture and verify
+the signature against the active wallet before treating the probe as passed.
+
 Per chain, record a fresh hosted install, independently verified chat signer,
 deposit and relay, option open, protected close, withdrawal and wallet credit.
 Keep evidence of user-op and transaction hashes, never executable signatures.
