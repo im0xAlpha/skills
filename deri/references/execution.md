@@ -59,9 +59,9 @@ shared pending slot. In an unvalidated install, stop after the preview.
 
 ## Release gates
 
-Current review build: Base and Arbitrum are both preview-only. The hosted
-chat signed the Deri fixture; installed-skill and funded acceptance tests are
-still outstanding. The probe alone does not enable production writes.
+Current review build: public option listings and indicative marks have passed
+in hosted chat on Base and Arbitrum. Writes are preview-only on both chains:
+neither the signing probe nor public reads establish funded order execution.
 
 Hosted-chat probe (2026-11-19): a signed-in Fast-mode chat attempted its
 sign-data action for the non-executable fixture and reported that the wallet
@@ -83,8 +83,22 @@ Hosted install (2026-11-19): the fork installed as `deri`, but the initial
 Base ETH put and Arbitrum BTC call tests stopped at a missing
 `scripts/deri.mjs`. Public option discovery and quotes are now self-contained
 in SKILL.md. Test that exact standalone reader locally with
-`DERI_LIVE_READ=1 npm test`. A new same-source install and a successful
-two-chain chat test are still required; a local live read is not that test.
+`DERI_LIVE_READ=1 npm test`.
+
+Hosted retest (2026-11-20): Bankr Fast chat updated the private skill from
+the same fork (tested source: `a2cccc3`) and identified the inline
+`publicOptions` function in the installed instructions. Using public data
+only, it returned the following indicative USD marks at 18:19:08 UTC:
+
+| Funding chain | Listed options | Quoted symbol | USD mark per contract |
+| --- | --- | --- | ---: |
+| Base | 60 ETH puts | `ETHUSD-4000-P` | 2353.1177 |
+| Arbitrum One | 50 BTC calls | `BTCUSD-190000-C` | 0.00000058925058 |
+
+An independent indexer read 28 seconds later matched both counts and all
+three sample symbols on each chain. This verifies chat discovery and quotes
+without a wallet; it does not verify installation of the account helpers,
+deposits, order fills, or withdrawals.
 
 Per chain, record a fresh hosted install, independently verified chat signer,
 deposit and relay, option open, protected close, withdrawal and wallet credit.
