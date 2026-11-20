@@ -105,3 +105,17 @@ deposit and relay, option open, protected close, withdrawal and wallet credit.
 Keep evidence of user-op and transaction hashes, never executable signatures.
 Run local tests with `npm ci && npm test` from this skill folder. No live funds
 or live transactions are required for those tests.
+
+Hosted account packaging (2026-11-20, fork commit `006890b`): a same-source
+reinstall in Bankr chat (private skill v3) staged SKILL.md in a fresh sandbox.
+Both embedded modules loaded with ethers@6.16.0. The offline probe digest
+matched the local helper. The hosted `deposit-preview` for a hypothetical
+new pToken and 1 native USDC returned chain IDs 8453 and 42161, 1000000
+base units, and the expected chain-specific USDC and gateway addresses.
+This path only reads: it returns no transaction and does not estimate a fee.
+No pToken, allowance or signature was created; no funds were transferred.
+The funded and failure-case release gates remain open.
+
+After changing either helper run `npm run package:hosted` from this skill
+folder and commit the generated SKILL.md. Tests reject stale embedded source
+and run the documented bootstrap with no adjacent helper files.
