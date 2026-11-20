@@ -106,7 +106,7 @@ function fixture(network, extra = {}) {
         owner,
         getNonce: extra.nonce ?? 2,
         decimals: 6,
-        balanceOf: 50000000,
+        balanceOf: extra.balance ?? 50000000,
         allowance: extra.allowance ?? 0,
         getPosition: [toBeHex(parseUnits("0.025", 18), 32), toBeHex(0, 32)],
       };
@@ -137,6 +137,18 @@ for (const network of ["base", "arbitrum"]) {
       assert.equal((await run("portfolio", args, io)).length, 1);
       assert.equal((await run("margin", args, io)).collateral, "10.0");
       const d = { ...args, pToken: "new", amount: "1.2" };
+      for (const balance of [0, 1200000]) {
+        const f = fixture(network, {balance});
+        const preview = await run("deposit-preview", d, f.io);
+        assert.equal(preview.previewOnly, true);
+        assert.equal(preview.sufficientUSDC, balance >= 1200000);
+        assert.equal(preview.needsExactApproval, true);
+        assert.equal(preview.amountBaseUnits, "1200000");
+        assert.equal(preview.gateway, c.gateway);
+        assert.equal(preview.transaction, undefined);
+        assert.ok(f.calls.every(m => ["eth_call","eth_chainId"].includes(m)));
+        if (!balance) await assert.rejects(run("deposit", d, f.io), /Insufficient/);
+      }
       const approval = await run("deposit", d, io);
       assert.deepEqual(
         [...abi.decodeFunctionData("approve", approval.transaction.data)].map(
