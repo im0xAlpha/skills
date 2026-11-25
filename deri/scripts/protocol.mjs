@@ -35,6 +35,7 @@ export const FACTORY = "0xecbb11f55bbad62d487dd6028d3e52ed22ef8526",
   PAYMASTER = "0xf7ad3923e4081a6d9db97e26e8a87f258f2f19c5";
 export const EP = "0x4337084d9e255ff0702461cf8895ce9e3b5ff108";
 export const abi = new Interface([
+  "event Transfer(address indexed from,address indexed to,uint256 value)",
   "function getAddress(address,uint256) view returns(address)",
   "function createAccount(address,uint256)",
   "function getNonce(address,uint192) view returns(uint256)",

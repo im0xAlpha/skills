@@ -1,4 +1,4 @@
-import { getAddress, isHexString, toBeHex, ZeroAddress } from "ethers";
+import { formatUnits, getAddress, isHexString, toBeHex, ZeroAddress } from "ethers";
 import {
   abi,
   BUNDLER,
@@ -89,7 +89,7 @@ export async function run(cmd, r = {}, io = live) {
     const rec = await io.rpc(c.rpc, "eth_getTransactionReceipt", [r.hash]);
     if (!rec) return { status: "pending_or_unknown" };
     check(
-      same(rec.from, getAddress(r.owner)) && same(rec.to, c.gateway),
+      same(rec.transactionHash, r.hash) && same(rec.from, getAddress(r.owner)) && same(rec.to, c.gateway),
       "Receipt is not this wallet's gateway deposit.",
     );
     if (BigInt(rec.status) !== 1n) return { status: "reverted" };
@@ -101,11 +101,17 @@ export async function run(cmd, r = {}, io = live) {
       ) {
         const pToken = event.args[0][2].toString();
         ptoken(pToken, c);
+        const payments = rec.logs.filter(l => same(l.address, c.usdc))
+          .map(l => abi.parseLog(l)).filter(e => e?.name === "Transfer" &&
+            same(e.args.from, r.owner) && same(e.args.to, c.gateway));
+        check(payments.length === 1 && payments[0].args.value > 0n, "No unique wallet USDC payment to gateway.");
         return {
           status: "gateway_confirmed",
           pToken,
           requestId: event.args[0][0].toString(),
-          amount: decimal(event.args[0][4]),
+          amount: formatUnits(payments[0].args.value, 6),
+          collateralAfter: decimal(event.args[0][4]),
+          cashAfter: decimal(event.args[0][5]),
         };
       }
     }

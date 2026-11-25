@@ -4,6 +4,8 @@ const docURL = new URL("../SKILL.md", import.meta.url);
 const doc = await readFile(docURL, "utf8");
 const marker = "<!-- GENERATED: HOSTED MODULES -->";
 const blocks = [];
+const workflow = await readFile(new URL("../references/execution.md", import.meta.url), "utf8");
+blocks.push(workflow.split("## Release gates")[0].trimEnd());
 for (const file of ["protocol.mjs", "account.mjs"]) {
   const source = await readFile(new URL(file, import.meta.url), "utf8");
   blocks.push("### " + file + "\n\n```js\n" + source.trimEnd() + "\n```");

@@ -119,3 +119,16 @@ The funded and failure-case release gates remain open.
 After changing either helper run `npm run package:hosted` from this skill
 folder and commit the generated SKILL.md. Tests reject stale embedded source
 and run the documented bootstrap with no adjacent helper files.
+
+Pre-launch checks (2026-11-25): the funded Base trading wallet passed the
+non-executable signer check with a temporary permission, subsequently
+disabled. Read-only simulations on existing public Base Pro accounts verified
+the EntryPoint hash for an option open, a protected close, and a withdrawal.
+An undercollateralized account reverted with InsufficientMargin. These are not
+fills or withdrawals from the acceptance wallet.
+
+Regression receipt:
+[`0x2efd...0d4b`](https://basescan.org/tx/0x2efdcd9eaa5a898f4321b5cb284b905294000531ac42474d5311e4c61a010d4b).
+The wallet paid 650.195751 USDC; the gateway event reported 520.1566 collateral
+and 130.03915 cash after deposit. Use the native-USDC wallet-to-gateway Transfer
+for amount paid, never either account balance or their sum.

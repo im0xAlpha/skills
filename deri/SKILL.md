@@ -119,6 +119,65 @@ or native wallet tools are unavailable, stop rather than generating calldata.
 
 <!-- GENERATED: HOSTED MODULES -->
 
+# Execution and acceptance
+
+The preview commands are read-only. No script sends transactions, stores
+credentials or accepts an arbitrary destination, contract method or RPC URL.
+Keep the original request and hash together per confirmation, never a single
+shared pending slot. In an unvalidated install, stop after the preview.
+
+## Fund the account
+
+1. Get the active wallet and run `portfolio`. Explicitly choose an existing
+   pToken or get consent to create one. Use decimal strings, not JSON numbers.
+2. Run `deposit` with `{"chain":"base","owner":"...","pToken":"new","amount":"25"}`
+   (or a pToken ID string). Show chain, amount, token, spender/destination,
+   and the wallet's network-fee estimate. Base and Arbitrum both need ETH for
+   raw contract calls. Never submit the deposit before the signing capability
+   check; the user must be able to withdraw.
+3. If returned step is `approve_exact`, confirm and use Bankr's native EVM
+   submission for that exact transaction. Wait for a successful receipt; re-run
+   deposit, then separately confirm the actual deposit. If the step did not
+   advance, stop. Never increase the allowance to unlimited.
+4. Run `deposit-receipt` with chain, owner and wallet transaction hash. After
+   gateway confirmation, run `margin` with its pToken ID. Wait for engine
+   request ID to reach the event request ID. A pending relay is not a reason
+   to submit the deposit again.
+
+## Open, close, withdraw
+
+1. Run `markets`, `quote`, and `portfolio`. Ask for the exact side, size, and
+   worst acceptable execution price per contract (maximum on a buy, minimum
+   on a sell). If asked for percentage slippage, agree on the derived price
+   before signing. Reject ambiguous strikes, expiry requests and multi-leg
+   orders. For short options explain margin and liquidation risk.
+2. Run `trade` with e.g.
+   `{"chain":"arbitrum","owner":"...","pToken":"...","symbol":"ETHUSD-4000-P","side":"buy","size":"0.01","limit":"100"}`.
+   For a full close use `"side":"close"`, omit size, specify limit. This uses
+   Deri's enforceable close-only order: a stale position cannot flip sides.
+   For withdrawal use `withdraw` with chain, owner, pToken and an explicit
+   USDC amount. The engine simulation checks current conditions; it does
+   not guarantee a fill, a future price, or final settlement.
+3. Show the preview summary, account, chain and pToken; explain the price
+   bound, direction, size and funding. The helper does not compute an exact
+   incremental margin estimate. If the user requires one, stop rather than
+   guess. Confirm this exact operation. Use Bankr's own authorized wallet
+   signing action for the returned typed data; stop on denial, do not change
+   wallet/security settings or ask for an API key.
+4. Run `verify-order` with the exact original inputs plus `action` (trade or
+   withdraw), `hash`, `previewAt`, `probeSignature`, and the order `signature`.
+   The helper rebuilds and simulates the order, checks the EntryPoint digest
+   and the two signatures. Never disclose the executable signature in chat.
+   Only for the confirmed order, send its returned method and params once
+   by JSON-RPC to the returned Deri bundler URL. The returned hash must match
+   the preview. The 90-second preview window is a local signing safeguard,
+   not an on-chain expiry. Never retain the signed operation for later.
+5. Use `receipt {"hash":"..."}`. On an ambiguous submit/timeout, look up the
+   original hash only; no blind retry. Stop on a revert or signing error.
+   On success, re-read positions to establish the actual fill. For withdrawals
+   separately verify USDC arrival on the selected funding chain; until then,
+   report relay pending. No receipt is not proof of failure.
+
 ### protocol.mjs
 
 ```js
@@ -159,6 +218,7 @@ export const FACTORY = "0xecbb11f55bbad62d487dd6028d3e52ed22ef8526",
   PAYMASTER = "0xf7ad3923e4081a6d9db97e26e8a87f258f2f19c5";
 export const EP = "0x4337084d9e255ff0702461cf8895ce9e3b5ff108";
 export const abi = new Interface([
+  "event Transfer(address indexed from,address indexed to,uint256 value)",
   "function getAddress(address,uint256) view returns(address)",
   "function createAccount(address,uint256)",
   "function getNonce(address,uint192) view returns(uint256)",
@@ -355,7 +415,7 @@ export const decimal = (n) => formatUnits(n, 18);
 ### account.mjs
 
 ```js
-import { getAddress, isHexString, toBeHex, ZeroAddress } from "ethers";
+import { formatUnits, getAddress, isHexString, toBeHex, ZeroAddress } from "ethers";
 import {
   abi,
   BUNDLER,
@@ -446,7 +506,7 @@ export async function run(cmd, r = {}, io = live) {
     const rec = await io.rpc(c.rpc, "eth_getTransactionReceipt", [r.hash]);
     if (!rec) return { status: "pending_or_unknown" };
     check(
-      same(rec.from, getAddress(r.owner)) && same(rec.to, c.gateway),
+      same(rec.transactionHash, r.hash) && same(rec.from, getAddress(r.owner)) && same(rec.to, c.gateway),
       "Receipt is not this wallet's gateway deposit.",
     );
     if (BigInt(rec.status) !== 1n) return { status: "reverted" };
@@ -458,11 +518,17 @@ export async function run(cmd, r = {}, io = live) {
       ) {
         const pToken = event.args[0][2].toString();
         ptoken(pToken, c);
+        const payments = rec.logs.filter(l => same(l.address, c.usdc))
+          .map(l => abi.parseLog(l)).filter(e => e?.name === "Transfer" &&
+            same(e.args.from, r.owner) && same(e.args.to, c.gateway));
+        check(payments.length === 1 && payments[0].args.value > 0n, "No unique wallet USDC payment to gateway.");
         return {
           status: "gateway_confirmed",
           pToken,
           requestId: event.args[0][0].toString(),
-          amount: decimal(event.args[0][4]),
+          amount: formatUnits(payments[0].args.value, 6),
+          collateralAfter: decimal(event.args[0][4]),
+          cashAfter: decimal(event.args[0][5]),
         };
       }
     }

@@ -283,15 +283,23 @@ test("deposit confirmation identifies the account from the gateway's own event",
     [10, owner, args.pToken, bId, units("1.2"), 0, 0],
   ]);
   const rec = {
+    transactionHash: hash,
     from: owner,
     to: c.gateway,
     status: "0x1",
     logs: [
       { address: ZeroAddress, ...event },
       { address: c.gateway, ...event },
+      { address: c.usdc, ...abi.encodeEventLog("Transfer", [owner, c.gateway, 1500000]) },
     ],
   };
   const input = { ...args, hash };
+  const result = await run("deposit-receipt", input, { ...io, rpc: async () => rec });
+  assert.equal(result.amount, "1.5");
+  assert.equal(result.collateralAfter, "1.2");
+  await assert.rejects(run("deposit-receipt", input, {
+    ...io, rpc: async () => ({...rec, logs:rec.logs.slice(0,2)}),
+  }), /No unique/);
   assert.equal(
     (await run("deposit-receipt", input, { ...io, rpc: async () => rec }))
       .requestId,
@@ -304,4 +312,22 @@ test("deposit confirmation identifies the account from the gateway's own event",
     }),
     /No matching/,
   );
+});
+
+test("receipt polling never resubmits on timeout, missing or mismatched result", async () => {
+  const hash = digest(probe()), txHash = toBeHex(123, 32);
+  let calls = 0;
+  const poll = (reply) => run("receipt", {hash}, {rpc: async (_url, method, params) => {
+    assert.equal(method, "eth_getUserOperationReceipt");
+    assert.deepEqual(params, [hash]);
+    calls++;
+    if (reply instanceof Error) throw reply;
+    return reply;
+  }});
+  await assert.rejects(poll(new Error("timeout")), /timeout/);
+  assert.equal((await poll(null)).status, "pending_or_unknown");
+  await assert.rejects(poll({userOpHash:txHash, success:true}), /Unexpected/);
+  assert.deepEqual(await poll({userOpHash:hash, success:true, receipt:{transactionHash:txHash}}),
+    {status:"executed", hash, txHash});
+  assert.equal(calls, 4);
 });
